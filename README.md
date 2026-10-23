@@ -86,3 +86,11 @@ Every PR and push to `main` runs: lint, typecheck, unit tests, build; Supabase m
 - Strict security headers (CSP, HSTS, frame-ancestors none, nosniff, referrer and permissions policies).
 
 See ADRs 007 and 011 for the reasoning and trade-offs.
+
+## Using it for your own trading
+
+Fork the repository and follow **Local development** and **Deploying** above with your own cTrader app, Supabase project and Vercel project. Each deployment is a separate, single-user journal: nothing is shared with this one. Defaults such as account currency and session time zone are in Settings.
+
+## License
+
+[MIT](LICENSE)
