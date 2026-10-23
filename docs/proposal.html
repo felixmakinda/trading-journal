@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trading Journal Proposal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+  :root {
+    --ink: #14213d; --muted: #5b6475; --line: #dfe3ea; --accent: #0f766e;
+    --accent-soft: #e6f4f1; --warn-soft: #fff6e0; --warn: #9a6700;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: Inter, system-ui, sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.5; margin: 0; background: #fff; }
+  h1 { font-size: 26pt; line-height: 1.15; margin: 0 0 8px; }
+  h2 { font-size: 15pt; margin: 0 0 6px; padding-bottom: 6px; border-bottom: 2px solid var(--accent); }
+  h3 { font-size: 11.5pt; margin: 16px 0 4px; }
+  p { margin: 6px 0; }
+  ul { margin: 6px 0; padding-left: 18px; }
+  li { margin: 3px 0; }
+  .page { page-break-after: always; }
+  section.page:last-of-type { page-break-after: auto; }
+  .cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; }
+  .kicker { color: var(--accent); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 9pt; }
+  .subtitle { font-size: 13pt; color: var(--muted); max-width: 140mm; }
+  .meta { margin-top: 30px; color: var(--muted); font-size: 9.5pt; }
+  .lead { color: var(--muted); margin-bottom: 10px; }
+  .box { background: var(--accent-soft); border-radius: 8px; padding: 10px 14px; margin: 10px 0; }
+  .box.warn { background: var(--warn-soft); }
+  .box.warn strong { color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 9.5pt; }
+  th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th { background: #f4f6f9; font-weight: 600; }
+  .mermaid { display: flex; justify-content: center; margin: 10px 0; break-inside: avoid; }
+  .mermaid svg { max-width: 100%; height: auto; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .card { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; break-inside: avoid; }
+  .card h3 { margin-top: 2px; }
+  .tag { display: inline-block; font-size: 8pt; font-weight: 600; padding: 1px 7px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); }
+  .tag.later { background: #eef0f4; color: var(--muted); }
+  .choice { white-space: nowrap; }
+  .decision td:last-child { width: 30mm; }
+  .small { font-size: 9pt; color: var(--muted); }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+</head>
+<body>
+
+<!-- Cover -->
+<section class="page cover">
+  <div class="kicker">Proposal for review</div>
+  <h1>Your Own Trading Journal</h1>
+  <p class="subtitle">A private, Tradezella-style journal built around how you actually trade: Pepperstone execution, TradingView charts, and forex-specific stats. This document shows how it would work and lists the decisions we need from you before we start.</p>
+  <div class="meta">
+    Prepared by Felix Makinda<br>
+    23 October 2026<br>
+    Version 1 (for discussion)
+  </div>
+</section>
+
+<!-- 1. Why -->
+<section class="page">
+  <h2>1. Why build it instead of paying for one</h2>
+  <p class="lead">You want something you own, can personalise, and do not pay for every month. Here is what is on the market today.</p>
+  <table>
+    <tr><th>Option</th><th>Price</th><th>What we noticed</th></tr>
+    <tr><td><strong>Tradezella</strong></td><td>$35 / $59 / $99 per month (new 2026 tiers)</td><td>Polished, but no free trial and no refunds. Reviewers mention syncs that break, filters that reset, and AI auto-tagging that messed up stats. Built mainly for US stocks and futures.</td></tr>
+    <tr><td><strong>ETW Journal</strong></td><td>$7 / $15 per month</td><td>Cheap and supports cTrader, but big promises ("serious edge", "your data is safe") with no detail on how the AI works or how data is protected.</td></tr>
+    <tr><td><strong>Open-source journals</strong> (TradeNote, Deltalytix)</td><td>Free, self-hosted</td><td>Good starting ideas, but aimed at stocks and futures, not forex. No Pepperstone or prop-firm features.</td></tr>
+    <tr><td><strong>Ours</strong></td><td>Roughly $0 to $7 per month to run</td><td>Built for one person (you), for forex, for Pepperstone and TradingView. You own all the data and can export it any time.</td></tr>
+  </table>
+
+  <h3>The key discovery</h3>
+  <div class="box">
+    Pepperstone only lets you trade on TradingView through a <strong>Razor account on cTrader</strong>. That means your trades actually live inside cTrader, and cTrader has an official, free API. So the journal can <strong>pull your trades in automatically</strong> with read-only access. No CSV uploads, no typing entries by hand.
+  </div>
+
+  <div class="mermaid">
+flowchart LR
+  you([You]) -->|place trades| tv[TradingView<br/>charts + trading panel]
+  tv -->|orders routed to| ct[Pepperstone Razor<br/>account on cTrader]
+  ct -->|read-only API| j[(Your Journal)]
+  ps[Pepperstone statement<br/>HTML export] -.->|backup import| j
+  csv[TradingView history<br/>CSV export] -.->|backup import| j
+  you -->|notes, plans,<br/>screenshots, emotions| j
+  classDef main fill:#e6f4f1,stroke:#0f766e,color:#14213d;
+  class j main;
+  </div>
+  <p class="small">Solid arrows are the automatic path. Dotted arrows are backups if the automatic sync is ever unavailable.</p>
+</section>
+
+<!-- 2. Daily flow -->
+<section class="page">
+  <h2>2. How a normal trading day would flow</h2>
+  <p class="lead">The journal fits around your routine instead of adding work to it.</p>
+  <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor You
+  participant J as Journal
+  participant TV as TradingView
+  participant CT as cTrader (Pepperstone)
+  You->>J: Quick plan + checklist
+  You->>TV: Place the trade
+  TV->>CT: Order executed
+  J->>CT: Fetch new deals (every 15 min)
+  CT-->>J: Entry, exit, lots, costs
+  J->>J: Match to plan, compute P&L
+  J-->>You: Alerts (rule break, revenge, limit)
+  You->>J: Notes, emotions, chart link
+  J-->>You: Weekly review report
+  </div>
+
+  <table>
+    <tr><th>Step</th><th>What happens</th></tr>
+    <tr><td>1</td><td>Before the trade you jot a quick plan: setup, entry, stop, target, and tick your checklist. Optional.</td></tr>
+    <tr><td>2-3</td><td>You trade on TradingView as usual. The order executes on your Pepperstone Razor account in cTrader.</td></tr>
+    <tr><td>4-5</td><td>Every 15 minutes the journal fetches new deals (read-only), including commission and swap.</td></tr>
+    <tr><td>6-7</td><td>It matches the trade to your plan, computes P&amp;L in $, pips and R, and flags rule breaks, revenge trades or a nearby daily loss limit.</td></tr>
+    <tr><td>8-9</td><td>You add emotions, notes and a TradingView snapshot link. At the end of the week you get a review report (with an AI summary later).</td></tr>
+  </table>
+
+  <h3>What "matching to your plan" gives you</h3>
+  <ul>
+    <li>A <strong>rule score</strong> per trade: did you follow your checklist, respect your stop, size correctly?</li>
+    <li>A clear split between <strong>good trades that lost</strong> (followed the plan) and <strong>bad trades that won</strong> (broke the rules but got lucky). This is where most improvement comes from.</li>
+    <li>Plans are optional. If you skip one, the trade still syncs and shows up as "unplanned".</li>
+  </ul>
+</section>
+
+<!-- 3. Features -->
+<section class="page">
+  <h2>3. What the journal would do</h2>
+  <p class="lead">Grouped by priority. <span class="tag">Phase 1-3</span> is the first usable version. <span class="tag later">Later</span> comes after you have used it for a while.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Core journal <span class="tag">Phase 1-2</span></h3>
+      <ul>
+        <li>Trade list with filters (pair, session, setup, tag, date)</li>
+        <li>Calendar of daily P&amp;L</li>
+        <li>Dashboard: win rate, average win and loss, profit factor, expectancy, drawdown</li>
+        <li>Notes, tags, screenshots, TradingView snapshot links shown as images</li>
+        <li>Export everything to CSV or JSON at any time</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Automatic sync <span class="tag">Phase 3</span></h3>
+      <ul>
+        <li>Connect your cTrader ID once, read-only</li>
+        <li>New trades appear within about 15 minutes</li>
+        <li>Commission and swap included, so P&amp;L matches Pepperstone</li>
+        <li>Backup: import Pepperstone statements or TradingView CSV</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Forex-specific <span class="tag">Phase 4</span></h3>
+      <ul>
+        <li>Results in dollars, pips and <strong>R</strong> (multiples of what you risked)</li>
+        <li>Session stats: Asia, London, New York, shown in Nairobi time</li>
+        <li>Best and worst pairs, days and hours</li>
+        <li>Prop-firm tracker: daily drawdown and max loss with warnings (if you trade funded accounts)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Behaviour and psychology <span class="tag">Phase 4</span></h3>
+      <ul>
+        <li>Revenge trade alert: bigger lot soon after a loss</li>
+        <li>Overtrading and losing-streak (tilt) detection</li>
+        <li>Mood, sleep and emotion tags compared with results</li>
+        <li>Your own rules, tracked and scored</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>AI coach <span class="tag later">Later</span></h3>
+      <ul>
+        <li>Weekly review written from your real numbers</li>
+        <li>"Ask my journal": e.g. <em>Why do I lose on Fridays?</em></li>
+        <li>Choose free, paid, or fully private AI (see section 5)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Phone friendly <span class="tag later">Later</span></h3>
+      <ul>
+        <li>Install on your phone like an app (no app store needed)</li>
+        <li>Log a note or emotion in about 10 seconds</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Architecture -->
+<section class="page">
+  <h2>4. How it is built (the short version)</h2>
+  <p class="lead">You do not need to manage any of this. It is here so you can see where your data goes.</p>
+  <div class="mermaid">
+flowchart TB
+  subgraph you[Your devices]
+    phone[Phone]
+    laptop[Laptop]
+  end
+  subgraph app[Journal app]
+    web[Website<br/>Next.js]
+    api[Engine<br/>Python FastAPI<br/>sync, stats, AI]
+  end
+  subgraph data[Your data]
+    db[(Database<br/>Postgres on Supabase)]
+    files[(Screenshots<br/>storage)]
+  end
+  ct[cTrader API<br/>Pepperstone]
+  ai[AI provider<br/>free or paid]
+  phone --> web
+  laptop --> web
+  web <--> db
+  web --> files
+  api <--> db
+  api -->|read-only, every 15 min| ct
+  api -.->|summary stats only| ai
+  </div>
+
+  <h3>Where should it live?</h3>
+  <table>
+    <tr><th></th><th>Online (recommended)</th><th>Only on your computer</th></tr>
+    <tr><td>Access from phone</td><td>Yes, anywhere</td><td>Only at home, on that machine</td></tr>
+    <tr><td>Automatic trade sync</td><td>Runs even when your laptop is off</td><td>Only while your computer is on</td></tr>
+    <tr><td>Backups</td><td>Automatic daily backups</td><td>Your responsibility</td></tr>
+    <tr><td>Privacy</td><td>Locked to your login, with 2-step verification</td><td>Never leaves your machine</td></tr>
+    <tr><td>Monthly cost</td><td>About $0 to $7</td><td>$0 (electricity aside)</td></tr>
+  </table>
+  <p>Either way, the same app works both ways. If you start online and later want it only on your computer, we move it with one export and one command.</p>
+</section>
+
+<!-- 5. AI + security -->
+<section class="page">
+  <h2>5. AI coach and keeping your data safe</h2>
+  <h3>How the AI would work (later phase)</h3>
+  <div class="mermaid">
+flowchart LR
+  t[(Your trades<br/>and notes)] --> s[Journal computes<br/>the stats itself]
+  s --> p[Short summary<br/>e.g. win rate by session,<br/>rule breaks, streaks]
+  p --> c{Which AI?}
+  c -->|Free| f[Gemini Flash or Groq<br/>daily limits apply]
+  c -->|Paid| pd[Claude<br/>better advice, pay per use]
+  c -->|Private| l[Local model on<br/>your own computer]
+  f --> r[Weekly review<br/>and answers]
+  pd --> r
+  l --> r
+  </div>
+  <ul>
+    <li><strong>The AI never does the maths.</strong> The journal calculates every number, and the AI only explains it. That stops it from inventing figures.</li>
+    <li><strong>It sees summaries, not your account.</strong> No login details, balances or account numbers are sent.</li>
+    <li><strong>You can switch AI provider</strong> in settings, with a monthly spending cap. Free tiers have daily limits that change often, so the journal keeps working when a limit is hit.</li>
+  </ul>
+
+  <h3>Security, in plain terms</h3>
+  <ul>
+    <li><strong>Read-only broker access.</strong> The journal can see trades but can never place, change or close one, and can never withdraw.</li>
+    <li>The cTrader connection key is <strong>encrypted</strong> and never sent to your browser.</li>
+    <li>Login with <strong>2-step verification</strong>. Every row of data is locked to your account at database level.</li>
+    <li>Automatic daily backups, plus a full export button.</li>
+    <li>Every code change is automatically tested and scanned for security problems before it goes live.</li>
+  </ul>
+  <div class="box warn"><strong>Note:</strong> the journal records and analyses. It does not give trade signals or place trades. The AI's suggestions are reflections on your own history, not financial advice.</div>
+</section>
+
+<!-- 6. Roadmap -->
+<section class="page">
+  <h2>6. Timeline</h2>
+  <p class="lead">An estimate, assuming part-time work. You get something usable at the end of Phase 2 and can give feedback from there.</p>
+  <div class="mermaid">
+gantt
+  dateFormat YYYY-MM-DD
+  axisFormat %d %b
+  section Build
+  1 Foundations :p1, 2026-11-02, 14d
+  2 Core journal :p2, after p1, 21d
+  3 Auto-sync :p3, after p2, 14d
+  4 Forex + behaviour :p4, after p3, 14d
+  section Later
+  5 AI coach :p5, after p4, 14d
+  6 Phone + polish :p6, after p5, 10d
+  section You
+  You try it :milestone, after p2, 0d
+  </div>
+  <h3>What you would need to provide</h3>
+  <ul>
+    <li>A few recent Pepperstone statements (or TradingView history exports) so we can test with real data.</li>
+    <li>About 15 minutes to connect your cTrader ID once the sync is ready.</li>
+    <li>Your trading rules and setups, so we can build your checklist.</li>
+    <li>Honest feedback after Phase 2.</li>
+  </ul>
+</section>
+
+<!-- 7. Decisions -->
+<section class="page">
+  <h2>7. Decisions we need from you</h2>
+  <p class="lead">Tick or write your answer next to each one. Our recommendation is in bold.</p>
+  <table class="decision">
+    <tr><th>#</th><th>Question</th><th>Options</th><th>Your answer</th></tr>
+    <tr><td>1</td><td>Do you trade through TradingView using a Pepperstone <strong>Razor account on cTrader</strong>? Any MT4 or MT5 accounts as well?</td><td>Yes, cTrader only / Also MT4 or MT5 / Not sure</td><td></td></tr>
+    <tr><td>2</td><td>How should trades come in?</td><td><strong>Automatic read-only cTrader sync</strong> / Manual statement uploads only</td><td></td></tr>
+    <tr><td>3</td><td>Where should the journal live?</td><td><strong>Online (phone + laptop)</strong> / Only on my computer</td><td></td></tr>
+    <tr><td>4</td><td>Do you trade prop-firm or funded accounts? If yes, which firm and what are the drawdown rules?</td><td>Yes (details) / No</td><td></td></tr>
+    <tr><td>5</td><td>Will you write a short plan before trades?</td><td><strong>Yes, quick checklist</strong> / Sometimes / No, journal after only</td><td></td></tr>
+    <tr><td>6</td><td>AI coach preference</td><td><strong>Start free, switch to paid if useful</strong> / Paid from the start / Private only (local)</td><td></td></tr>
+    <tr><td>7</td><td>Monthly budget for hosting and AI</td><td>$0 / <strong>Up to $10</strong> / More</td><td></td></tr>
+    <tr><td>8</td><td>Account currency and the sessions you trade</td><td>e.g. USD; London and New York</td><td></td></tr>
+    <tr><td>9</td><td>Top 3 features you want first (from section 3)</td><td>Your pick</td><td></td></tr>
+    <tr><td>10</td><td>Anything Tradezella or other journals do that you love, or that annoys you?</td><td>Free text</td><td></td></tr>
+  </table>
+  <p>Once we have these answers, we will confirm the plan and start Phase 1.</p>
+</section>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    themeVariables: {
+      fontFamily: 'Inter, system-ui, sans-serif',
+      primaryColor: '#f4f6f9', primaryBorderColor: '#8a94a6', primaryTextColor: '#14213d',
+      lineColor: '#5b6475', secondaryColor: '#e6f4f1', tertiaryColor: '#fbfcfd'
+    },
+    gantt: { useWidth: 680, barHeight: 24, fontSize: 12, sectionFontSize: 12, leftPadding: 60 },
+    sequence: { messageFontSize: 14, actorFontSize: 14, noteFontSize: 13, actorMargin: 70 }
+  });
+  mermaid.run({ querySelector: '.mermaid' }).then(() => { document.body.dataset.ready = '1'; });
+</script>
+</body>
+</html>

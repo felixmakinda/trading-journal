@@ -1,0 +1,22 @@
+{
+  "name": "@tj/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "papaparse": "^5.7.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/papaparse": "^5.5.2",
+    "typescript": "^5",
+    "vitest": "^5.0.5"
+  }
+}

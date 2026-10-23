@@ -1,0 +1,27 @@
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { Card, PageHeader, Skeleton } from "@/components/ui";
+import { requireUser } from "@/lib/auth";
+import { distinctValues, getProfile, listTrades } from "@/lib/data/trades";
+import { PlanForm } from "../plan-form";
+
+export const metadata: Metadata = { title: "Plan a trade" };
+
+export default function NewPlanPage() {
+  return (
+    <>
+      <PageHeader title="Plan a trade" description="Write it down before you click. When the trade syncs, link it to this plan from the trade page." />
+      <Card>
+        <Suspense fallback={<Skeleton className="h-96" />}>
+          <Form />
+        </Suspense>
+      </Card>
+    </>
+  );
+}
+
+async function Form() {
+  const { supabase, user } = await requireUser();
+  const [{ rules }, trades] = await Promise.all([getProfile(supabase, user.id), listTrades(supabase)]);
+  return <PlanForm checklist={rules.checklist} setups={distinctValues(trades).setups} />;
+}
