@@ -100,7 +100,7 @@ export function filterTrades(trades: JournalTrade[], f: TradeFilters, timeZone: 
     if (f.day && localParts(t.closeTime ?? t.openTime, timeZone).day !== f.day) return false;
     if (f.symbol && t.symbol !== f.symbol) return false;
     if (f.side && t.side !== f.side) return false;
-    if (f.setup && t.setup !== f.setup) return false;
+    if (f.setup && t.setup?.toLowerCase() !== f.setup.toLowerCase()) return false;
     if (f.status && t.status !== f.status) return false;
     if (f.tag && !t.tags?.includes(f.tag)) return false;
     if (f.outcome === "win" && !(t.status === "closed" && t.netPnl > 0)) return false;

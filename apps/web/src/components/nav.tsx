@@ -8,6 +8,7 @@ export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/trades", label: "Trades" },
   { href: "/plans", label: "Plans" },
+  { href: "/playbook", label: "Playbook" },
   { href: "/analytics", label: "Analytics" },
   { href: "/import", label: "Import" },
   { href: "/settings", label: "Settings" },

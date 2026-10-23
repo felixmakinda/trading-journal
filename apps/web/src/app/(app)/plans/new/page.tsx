@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { findModel } from "@tj/core";
 import { Suspense } from "react";
 import { Card, PageHeader, Skeleton } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
+import { listModels } from "@/lib/data/playbook";
 import { distinctValues, getProfile, listTrades } from "@/lib/data/trades";
 import { PlanForm } from "../plan-form";
 
@@ -22,6 +24,8 @@ export default function NewPlanPage() {
 
 async function Form() {
   const { supabase, user } = await requireUser();
-  const [{ rules }, trades] = await Promise.all([getProfile(supabase, user.id), listTrades(supabase)]);
-  return <PlanForm checklist={rules.checklist} setups={distinctValues(trades).setups} />;
+  const [{ rules }, trades, models] = await Promise.all([getProfile(supabase, user.id), listTrades(supabase), listModels(supabase)]);
+  const active = models.filter((m) => !m.archived);
+  const setups = distinctValues(trades).setups.filter((s) => !findModel(s, active));
+  return <PlanForm checklist={rules.checklist} models={active} setups={setups} />;
 }

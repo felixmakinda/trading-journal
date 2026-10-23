@@ -19,6 +19,14 @@ import {
   reconstructTrades,
   rMultiple,
   sessionOf,
+  checklistFor,
+  estimateGrossPnl,
+  findModel,
+  instrumentSpec,
+  lotsToUnits,
+  modelInputSchema,
+  modelResult,
+  targetPrice,
   toCsv,
   type Deal,
   type Trade,
@@ -51,7 +59,7 @@ describe("forex helpers", () => {
   it("uses broker pip position when known, conventions otherwise", () => {
     expect(pipSize("EURUSD")).toBe(0.0001);
     expect(pipSize("USDJPY")).toBe(0.01);
-    expect(pipSize("XAUUSD")).toBe(0.1);
+    expect(pipSize("XAUUSD", 2)).toBe(1);
     expect(pipSize("US30", 0)).toBe(1);
     expect(pipSize("EURUSD", 4)).toBeCloseTo(0.0001);
   });
@@ -62,6 +70,69 @@ describe("forex helpers", () => {
     expect(rMultiple("buy", 1.1, 1.103, 1.099)).toBe(3);
     expect(rMultiple("sell", 150, 151, 150.5)).toBe(-2);
     expect(rMultiple("buy", 1.1, 1.103, null)).toBeNull();
+  });
+});
+
+describe("instrumentSpec", () => {
+  it("counts FX in pips and lots, and only fixes the point value for USD-quoted pairs", () => {
+    expect(instrumentSpec("GBPUSD")).toMatchObject({ assetClass: "forex", moveUnit: "pips", sizeUnit: "lots", pointValue: 100_000 });
+    expect(instrumentSpec("EURJPY").pointValue).toBeNull();
+  });
+
+  it("counts index, metal and energy CFDs in points", () => {
+    expect(instrumentSpec("NAS100")).toMatchObject({ assetClass: "index", moveUnit: "points", pipSize: 1, pointValue: 1 });
+    expect(instrumentSpec("GER40")).toMatchObject({ assetClass: "index", pointValue: null });
+    expect(instrumentSpec("XAUUSD")).toMatchObject({ assetClass: "metal", moveUnit: "points", contractSize: 100, pointValue: 100 });
+    expect(instrumentSpec("SpotCrude").assetClass).toBe("energy");
+  });
+
+  it("recognises futures by root, contract month and feed spelling", () => {
+    for (const s of ["ES", "ESZ6", "ESZ2026", "ES1!", "CME_MINI:ES1!", "ES=F"]) {
+      expect(instrumentSpec(s)).toMatchObject({ assetClass: "future", sizeUnit: "contracts", pointValue: 50 });
+    }
+    expect(instrumentSpec("MNQZ6").pointValue).toBe(2);
+    expect(instrumentSpec("NQ1!").pointValue).toBe(20);
+    expect(instrumentSpec("GC").pointValue).toBe(100);
+  });
+
+  it("estimates P&L from points, size and point value", () => {
+    expect(estimateGrossPnl(instrumentSpec("NQ"), "buy", 20_000, 20_010, 2)).toBe(400);
+    expect(estimateGrossPnl(instrumentSpec("XAUUSD"), "sell", 2600, 2590, 0.5)).toBe(500);
+    expect(estimateGrossPnl(instrumentSpec("GER40"), "buy", 1, 2, 1)).toBeNull();
+    expect(lotsToUnits(0.01, instrumentSpec("NAS100").contractSize)).toBe(0.01);
+  });
+});
+
+describe("playbook", () => {
+  const model = {
+    id: "m1", name: ".382 VB", description: null, checklist: ["Clean M5 structure"],
+    targetR: 4, breakevenR: 1.5, maxAttempts: 2, entryWindowMinutes: 45, archived: false,
+  };
+
+  it("matches setups to models by name, ignoring case and spaces", () => {
+    expect(findModel(" .382 vb ", [model])?.id).toBe("m1");
+    expect(findModel("FTB", [model])).toBeNull();
+    expect(checklistFor(".382 VB", [model], parseRules({}))).toEqual(["Clean M5 structure"]);
+    expect(checklistFor("FTB", [model], parseRules({}))).toEqual(parseRules({}).checklist);
+  });
+
+  it("prices targets in R and counts target hits", () => {
+    expect(targetPrice(100, 98, 4)).toBe(108);
+    expect(targetPrice(100, 102, 4)).toBe(92);
+    expect(targetPrice(100, 100, 4)).toBeNull();
+    const r = modelResult(model, [
+      { status: "closed", rMultiple: 3.97 },
+      { status: "closed", rMultiple: -1 },
+      { status: "closed", rMultiple: null },
+      { status: "open", rMultiple: null },
+    ]);
+    expect(r).toEqual({ trades: 4, measured: 2, targetHits: 1, avgR: 1.485 });
+  });
+
+  it("validates model input from forms", () => {
+    const parsed = modelInputSchema.parse({ name: " FTB ", targetR: "4", breakevenR: "", maxAttempts: "2", entryWindowMinutes: "" });
+    expect(parsed).toMatchObject({ name: "FTB", targetR: 4, breakevenR: null, maxAttempts: 2, entryWindowMinutes: null, checklist: [] });
+    expect(modelInputSchema.safeParse({ name: "x", maxAttempts: "1.5" }).success).toBe(false);
   });
 });
 

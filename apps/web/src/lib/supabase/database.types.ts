@@ -131,6 +131,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"playbook_models": {
+                  Row: {
+                    "archived": boolean,"breakeven_r": number | null,"checklist": NonNullable<Json>,"created_at": string,"description": string | null,"entry_window_minutes": number | null,"id": string,"max_attempts": number | null,"name": string,"target_r": number | null,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived"?: boolean,"breakeven_r"?: number | null,"checklist"?: NonNullable<Json>,"created_at"?: string,"description"?: string | null,"entry_window_minutes"?: number | null,"id"?: string,"max_attempts"?: number | null,"name": string,"target_r"?: number | null,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "archived"?: boolean,"breakeven_r"?: number | null,"checklist"?: NonNullable<Json>,"created_at"?: string,"description"?: string | null,"entry_window_minutes"?: number | null,"id"?: string,"max_attempts"?: number | null,"name"?: string,"target_r"?: number | null,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"profiles": {
                   Row: {
                     "created_at": string,"currency": string,"display_name": string | null,"rules": NonNullable<Json>,"timezone": string,"updated_at": string,"user_id": string

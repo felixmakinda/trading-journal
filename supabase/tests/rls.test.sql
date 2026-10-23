@@ -1,7 +1,7 @@
 -- Row Level Security and MFA enforcement. Run with: supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(17);
 
 -- Two users, each with one trade. Profiles are created by the auth trigger.
 insert into auth.users (id, instance_id, aud, role, email) values
@@ -11,6 +11,11 @@ insert into auth.users (id, instance_id, aud, role, email) values
 insert into public.trades (user_id, source, symbol, side, status, volume, lots, open_time, entry_price) values
   ('11111111-1111-4111-8111-111111111111', 'manual', 'EURUSD', 'buy', 'open', 100000, 1, now(), 1.1),
   ('22222222-2222-4222-8222-222222222222', 'manual', 'GBPUSD', 'sell', 'open', 100000, 1, now(), 1.3);
+
+insert into public.playbook_models (user_id, name, target_r) values
+  ('11111111-1111-4111-8111-111111111111', 'FTB', 4),
+  ('22222222-2222-4222-8222-222222222222', 'Secret edge', 7);
+update public.trades set setup = 'ftb' where user_id = '11111111-1111-4111-8111-111111111111';
 
 insert into public.broker_connections (id, user_id) values
   ('33333333-3333-4333-8333-333333333333', '11111111-1111-4111-8111-111111111111');
@@ -45,6 +50,13 @@ select throws_ok(
   $$ insert into public.broker_connections (user_id) values ('11111111-1111-4111-8111-111111111111') $$,
   '42501', null, 'connections are written by the server only');
 
+select is((select string_agg(name, ',') from public.playbook_models), 'FTB', 'A sees only their own playbook');
+select throws_ok(
+  $$ insert into public.playbook_models (user_id, name) values ('22222222-2222-4222-8222-222222222222', 'X') $$,
+  '42501', null, 'A cannot add models for B');
+update public.playbook_models set name = 'FTB 382' where name = 'FTB';
+select is((select setup from public.trades), 'FTB 382', 'renaming a model renames it on its trades');
+
 -- A enrols MFA: a password-only session must now see nothing.
 reset role;
 insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at)
@@ -54,9 +66,12 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","aal":"aal1"}';
 select is((select count(*) from public.trades), 0::bigint, 'aal1 session sees nothing once MFA is enrolled');
 select is((select count(*) from public.profiles), 0::bigint, 'including the profile');
+select is((select count(*) from public.playbook_models), 0::bigint, 'and the playbook');
 
 set local request.jwt.claims = '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","aal":"aal2"}';
 select is((select count(*) from public.trades), 1::bigint, 'aal2 session sees the data again');
+reset role;
+select is((select setup from public.trades where user_id = '22222222-2222-4222-8222-222222222222'), null, 'B''s trades were untouched by A''s rename');
 
 select * from finish();
 rollback;

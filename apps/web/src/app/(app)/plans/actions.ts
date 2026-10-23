@@ -1,22 +1,25 @@
 "use server";
 
-import { planInputSchema } from "@tj/core";
+import { checklistFor, planInputSchema } from "@tj/core";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
+import { listModels } from "@/lib/data/playbook";
 import { getProfile } from "@/lib/data/trades";
 
 export type ActionState = { ok?: boolean; message?: string; fieldErrors?: Record<string, string> } | null;
 
 export async function createPlan(_: ActionState, form: FormData): Promise<ActionState> {
   const { supabase, user } = await requireUser();
-  const { rules } = await getProfile(supabase, user.id);
+  const [{ rules }, models] = await Promise.all([getProfile(supabase, user.id), listModels(supabase)]);
   const checked = new Set(form.getAll("check").map(String));
   const raw = Object.fromEntries(form) as Record<string, string>;
+  // Same list the form showed: the setup's own checklist, or the general one.
+  const checklist = checklistFor(raw.setup, models, rules);
   const parsed = planInputSchema.safeParse({
     ...raw,
-    checklist: rules.checklist.map((label, i) => ({ label, done: checked.has(String(i)) })),
+    checklist: checklist.map((label, i) => ({ label, done: checked.has(String(i)) })),
   });
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};

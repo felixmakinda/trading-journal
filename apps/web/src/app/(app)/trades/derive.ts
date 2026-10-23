@@ -1,15 +1,16 @@
-import { lotsToUnits, pipSize, pipsMoved, round2, rMultiple, type TradeInput } from "@tj/core";
+import { estimateGrossPnl, instrumentSpec, lotsToUnits, pipsMoved, round2, rMultiple, type TradeInput } from "@tj/core";
 
 /** Broker columns derived from user-entered values. P&L is used as given when supplied. */
 export function brokerColumns(input: TradeInput) {
-  const volume = lotsToUnits(input.lots);
-  const pip = pipSize(input.symbol);
+  const spec = instrumentSpec(input.symbol);
+  const volume = lotsToUnits(input.lots, spec.contractSize);
+  const pip = spec.pipSize;
   const closed = input.closeTime !== null && input.exitPrice !== null;
   const commission = input.commission === null ? 0 : -Math.abs(input.commission);
   const swap = input.swap ?? 0;
-  // Without a P&L figure we can only estimate for USD-quoted pairs; ask for the broker's number otherwise.
-  const estimatedGross =
-    closed && input.symbol.endsWith("USD") ? (input.exitPrice! - input.entryPrice) * (input.side === "buy" ? 1 : -1) * volume : 0;
+  // Estimated only where a point has a fixed USD value (futures, USD-quoted
+  // pairs and CFDs); otherwise the broker's P&L figure is needed.
+  const estimatedGross = closed ? (estimateGrossPnl(spec, input.side, input.entryPrice, input.exitPrice!, input.lots) ?? 0) : 0;
   const net = input.netPnl ?? round2(estimatedGross + commission + swap);
   return {
     symbol: input.symbol,

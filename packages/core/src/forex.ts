@@ -1,3 +1,4 @@
+import { instrumentSpec } from "./instruments";
 import { direction, type Side } from "./types";
 
 export const STANDARD_LOT = 100_000;
@@ -17,22 +18,14 @@ export function unitsToLots(units: number, lotSize = STANDARD_LOT): number {
   return Math.round((units / lotSize) * 100) / 100;
 }
 
+/** Rounded to hundredths: a 0.01 lot of a $1-per-point index is 0.01 units, not 0. */
 export function lotsToUnits(lots: number, lotSize = STANDARD_LOT): number {
-  return Math.round(lots * lotSize);
+  return Math.round(lots * lotSize * 100) / 100;
 }
 
-/**
- * Size of one pip in price terms. Prefer the broker's pipPosition when known
- * (cTrader reports it per symbol); otherwise fall back to FX conventions.
- */
+/** Size of one pip (FX) or point (everything else) in price terms. */
 export function pipSize(symbol: string, pipPosition?: number | null): number {
-  if (pipPosition !== undefined && pipPosition !== null) return 10 ** -pipPosition;
-  const s = symbol.toUpperCase();
-  if (s.includes("JPY")) return 0.01;
-  if (s.startsWith("XAU")) return 0.1;
-  if (s.startsWith("XAG")) return 0.01;
-  if (/^[A-Z]{6}$/.test(s)) return 0.0001;
-  return 1;
+  return instrumentSpec(symbol, pipPosition).pipSize;
 }
 
 export function pipsMoved(side: Side, entry: number, exit: number, pip: number): number {
