@@ -66,6 +66,7 @@ Sign in with the demo account `demo@journal.local` / `DemoTrader2026` (local see
    - Authentication → disable sign-ups, enable TOTP MFA, set the site URL to the app's URL.
    - Create the trader's user (Authentication → Users → Add user → Create new user, with a password and **Auto Confirm User** ticked). Don't use Invite: the app has no page for setting a password from an invite link.
    - Apply the migrations from your machine, once: `pnpm exec supabase link --project-ref <project-ref>` then `pnpm exec supabase db push`. After that, the **Deploy database** workflow (step 4) applies new ones.
+   - Optional: fill the empty app with fictional demo trades in a separate "Razor (demo data)" account, from the SQL editor: `select private.load_demo_trades('<your email>');`. Remove them before real trades arrive with `select private.remove_demo_trades('<your email>');`; real trades are never touched.
    - SQL editor, once:
      ```sql
      select vault.create_secret('https://<your-domain>', 'app_url');
