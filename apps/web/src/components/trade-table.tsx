@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FLAG_LABELS, type Flag } from "@tj/core";
 import type { JournalTrade } from "@/lib/data/trades";
-import { dateTime, price, signed } from "@/lib/format";
+import { dateTime, move, price, signed, size } from "@/lib/format";
 import { Badge, Pnl, cx } from "./ui";
 
 interface Props {
@@ -21,9 +21,9 @@ export function TradeTable({ trades, currency, timeZone, flags, compact }: Props
             <th className="px-4 py-2 font-medium sm:pl-0">Opened</th>
             <th className="px-2 py-2 font-medium">Symbol</th>
             <th className="px-2 py-2 font-medium">Side</th>
-            <th className="px-2 py-2 text-right font-medium">Lots</th>
+            <th className="px-2 py-2 text-right font-medium">Size</th>
             {!compact && <th className="px-2 py-2 text-right font-medium">Entry → Exit</th>}
-            <th className="px-2 py-2 text-right font-medium">Pips</th>
+            <th className="px-2 py-2 text-right font-medium">Move</th>
             <th className="px-2 py-2 text-right font-medium">R</th>
             <th className="px-2 py-2 text-right font-medium">Net P&amp;L</th>
             {!compact && <th className="px-2 py-2 font-medium">Setup / flags</th>}
@@ -45,13 +45,13 @@ export function TradeTable({ trades, currency, timeZone, flags, compact }: Props
                     {t.side === "buy" ? "Long" : "Short"}
                   </span>
                 </td>
-                <td className="px-2 py-2 text-right">{t.lots.toFixed(2)}</td>
+                <td className="px-2 py-2 text-right whitespace-nowrap">{size(t.symbol, t.lots)}</td>
                 {!compact && (
                   <td className="px-2 py-2 text-right whitespace-nowrap text-ink-2">
                     {price(t.entryPrice)} → {t.status === "open" ? <Badge>open</Badge> : price(t.exitPrice)}
                   </td>
                 )}
-                <td className="px-2 py-2 text-right text-ink-2">{t.pips === null ? "–" : signed(t.pips)}</td>
+                <td className="px-2 py-2 text-right whitespace-nowrap text-ink-2">{move(t.symbol, t.pips)}</td>
                 <td className="px-2 py-2 text-right text-ink-2">{t.rMultiple === null ? "–" : signed(t.rMultiple, 2, "R")}</td>
                 <td className="px-2 py-2 text-right">
                   {t.status === "open" ? <span className="text-muted">–</span> : <Pnl value={t.netPnl} currency={currency} />}

@@ -1,3 +1,5 @@
+import { instrumentSpec } from "@tj/core";
+
 const moneyCache = new Map<string, Intl.NumberFormat>();
 
 function moneyFormat(currency: string) {
@@ -49,6 +51,17 @@ export function num(value: number | null, digits = 2): string {
 export function price(value: number | null): string {
   if (value === null) return "–";
   return value >= 100 ? value.toFixed(2) : value.toFixed(5);
+}
+
+/** Position size in the instrument's own unit: "0.50" lots, or "2 ct" for futures contracts. */
+export function size(symbol: string, lots: number): string {
+  return instrumentSpec(symbol).sizeUnit === "contracts" ? `${lots} ct` : lots.toFixed(2);
+}
+
+/** Signed price move in pips (FX) or points (everything else). */
+export function move(symbol: string, pips: number | null): string {
+  if (pips === null) return "–";
+  return signed(pips, 1, instrumentSpec(symbol).moveUnit === "pips" ? " pips" : " pts");
 }
 
 export function dateTime(iso: string | null, timeZone: string): string {

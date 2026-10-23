@@ -42,7 +42,7 @@ export function TradeForm({ action, values, submitLabel, timeZone }: Props) {
     <form action={formAction} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label="Symbol" error={err("symbol")}>
-          <input name="symbol" defaultValue={values.symbol} required placeholder="EURUSD" className={`${inputStyles} uppercase`} />
+          <input name="symbol" defaultValue={values.symbol} required placeholder="NAS100, EURUSD, MNQ…" className={`${inputStyles} uppercase`} />
         </Field>
         <Field label="Direction" error={err("side")}>
           <select name="side" defaultValue={values.side} className={inputStyles}>
@@ -50,7 +50,7 @@ export function TradeForm({ action, values, submitLabel, timeZone }: Props) {
             <option value="sell">Short (sell)</option>
           </select>
         </Field>
-        <Field label="Lots" error={err("lots")}>{numberInput("lots", "0.01", true)}</Field>
+        <Field label="Size" hint="Lots, or contracts for futures" error={err("lots")}>{numberInput("lots", "0.01", true)}</Field>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={`Opened (${timeZone})`} error={err("openTime")}>
@@ -67,7 +67,7 @@ export function TradeForm({ action, values, submitLabel, timeZone }: Props) {
         <Field label="Take profit" error={err("takeProfit")}>{numberInput("takeProfit")}</Field>
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Net P&L" hint="From your broker statement, after costs" error={err("netPnl")}>{numberInput("netPnl")}</Field>
+        <Field label="Net P&L" hint="From your statement. Left empty, it is calculated for futures and USD-priced instruments." error={err("netPnl")}>{numberInput("netPnl")}</Field>
         <Field label="Commission" error={err("commission")}>{numberInput("commission")}</Field>
         <Field label="Swap" error={err("swap")}>{numberInput("swap")}</Field>
       </div>

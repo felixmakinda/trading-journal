@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { FLAG_LABELS, SESSION_LABELS, detectFlags, holdingMinutes, sessionOf } from "@tj/core";
+import { FLAG_LABELS, SESSION_LABELS, detectFlags, findModel, holdingMinutes, sessionOf } from "@tj/core";
 import { Badge, Button, Card, Pnl, Skeleton, cx } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
+import { listModels } from "@/lib/data/playbook";
 import { distinctValues, getProfile, getTrade, listTags, listTrades } from "@/lib/data/trades";
-import { dateTime, duration, money, price, signed, signedMoney, toLocalInput } from "@/lib/format";
+import { dateTime, duration, money, move, price, signed, signedMoney, size, toLocalInput } from "@/lib/format";
 import { snapshotImage } from "@/lib/tradingview";
 import { deleteAttachment, deleteTrade, resetToBroker, saveJournal, updateTrade, uploadAttachment } from "../actions";
 import { TradeForm } from "../trade-form";
@@ -27,27 +28,31 @@ async function TradeDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const { supabase, user } = await requireUser();
-  const [detail, profile, all, tags, plans] = await Promise.all([
+  const [detail, profile, all, tags, plans, models] = await Promise.all([
     getTrade(supabase, id),
     getProfile(supabase, user.id),
     listTrades(supabase),
     listTags(supabase),
     supabase.from("trade_plans").select("id, symbol, side, setup, created_at").order("created_at", { ascending: false }).limit(30),
+    listModels(supabase),
   ]);
   if (!detail) notFound();
   const { trade, executions, attachments } = detail;
   const { currency, timezone, rules } = profile;
   const flags = detectFlags(all, rules, timezone).get(trade.id) ?? [];
   const snapshot = snapshotImage(trade.chartUrl);
+  const model = findModel(trade.setup, models);
+  const activeModels = models.filter((m) => !m.archived);
+  const setupNames = [...activeModels.map((m) => m.name), ...distinctValues(all).setups.filter((s) => !findModel(s, activeModels))];
   const signedUrls = attachments.length
     ? (await supabase.storage.from("attachments").createSignedUrls(attachments.map((a) => a.storage_path), 600)).data ?? []
     : [];
 
   const facts: [string, React.ReactNode][] = [
-    ["Lots", trade.lots.toFixed(2)],
+    ["Size", size(trade.symbol, trade.lots)],
     ["Entry", price(trade.entryPrice)],
     ["Exit", price(trade.exitPrice)],
-    ["Pips", trade.pips === null ? "–" : signed(trade.pips)],
+    ["Move", move(trade.symbol, trade.pips)],
     ["R multiple", trade.rMultiple === null ? "Add a stop loss" : signed(trade.rMultiple, 2, "R")],
     ["Gross", signedMoney(trade.grossPnl, currency)],
     ["Commission", signedMoney(trade.commission, currency)],
@@ -88,6 +93,27 @@ async function TradeDetail({ params }: { params: Promise<{ id: string }> }) {
         </dl>
       </Card>
 
+      {model && (
+        <Card
+          title={`Playbook · ${model.name}`}
+          actions={<Link href="/playbook" className="text-sm text-ink-2 hover:text-ink">Rules →</Link>}
+        >
+          <div className="flex flex-wrap items-center gap-1.5 text-sm">
+            {model.targetR !== null && <Badge tone="accent">Target {model.targetR}R</Badge>}
+            {model.breakevenR !== null && <Badge tone="accent">Break-even at {model.breakevenR}R</Badge>}
+            {model.maxAttempts !== null && <Badge tone="accent">{model.maxAttempts} {model.maxAttempts === 1 ? "attempt" : "attempts"} max</Badge>}
+            {model.entryWindowMinutes !== null && <Badge tone="accent">Within {model.entryWindowMinutes} min of the open</Badge>}
+            {model.targetR !== null && trade.rMultiple !== null && trade.status === "closed" && (
+              <span className="tabular ml-1 text-ink-2">
+                {trade.rMultiple >= model.targetR - 0.05
+                  ? "Reached the target."
+                  : `Closed at ${signed(trade.rMultiple, 2, "R")} of the ${model.targetR}R target.`}
+              </span>
+            )}
+          </div>
+        </Card>
+      )}
+
       {snapshot && (
         <Card title="Chart">
           {/* eslint-disable-next-line @next/next/no-img-element -- external TradingView snapshot, not optimisable */}
@@ -111,7 +137,7 @@ async function TradeDetail({ params }: { params: Promise<{ id: string }> }) {
             planId: trade.planId,
             tagIds: trade.tagRefs.map((t) => t.id),
           }}
-          setups={distinctValues(all).setups}
+          setups={setupNames}
           tags={tags}
           plans={(plans.data ?? []).map((p) => ({
             id: p.id,

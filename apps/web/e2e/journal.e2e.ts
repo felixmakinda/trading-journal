@@ -35,7 +35,7 @@ test("manual trade, journal and plan round-trip", async ({ page }) => {
   await signIn(page);
   await page.goto("/trades/new");
   await page.getByLabel("Symbol").fill("eurusd");
-  await page.getByLabel("Lots").fill("0.5");
+  await page.getByLabel("Size").fill("0.5");
   await page.getByLabel(/Opened/).fill("2026-10-22T10:00");
   await page.getByLabel("Closed").fill("2026-10-22T12:30");
   await page.getByLabel("Entry price").fill("1.0850");
@@ -44,7 +44,7 @@ test("manual trade, journal and plan round-trip", async ({ page }) => {
   await page.getByRole("button", { name: "Save trade" }).click();
 
   await expect(page.getByRole("heading", { name: "EURUSD" })).toBeVisible();
-  await expect(page.getByText("+30.0", { exact: true })).toBeVisible();
+  await expect(page.getByText("+30.0 pips", { exact: true })).toBeVisible();
   await expect(page.getByText("+2.00R")).toBeVisible();
 
   await page.getByRole("combobox", { name: "Setup" }).fill("E2E setup");
@@ -61,6 +61,38 @@ test("manual trade, journal and plan round-trip", async ({ page }) => {
   await expect(page.getByText("2.50 : 1")).toBeVisible();
   await page.getByRole("button", { name: "Save plan" }).click();
   await expect(page).toHaveURL(/\/plans$/);
+});
+
+test("playbook setup drives the plan, and futures P&L is calculated", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/playbook");
+  const add = page.locator("#new");
+  await add.getByLabel("Name").fill("E2E FTB");
+  await add.getByLabel("Target").fill("4");
+  await add.getByLabel("Checklist").fill("Failed to break the high\nVisual break on M1");
+  await add.getByRole("button", { name: "Add to playbook" }).click();
+  await expect(add.getByRole("status")).toHaveText('Added "E2E FTB".');
+
+  await page.goto("/plans/new");
+  await page.getByRole("combobox", { name: "Setup" }).fill("e2e ftb");
+  await expect(page.getByText("Visual break on M1")).toBeVisible();
+  await page.getByLabel("Entry").fill("100");
+  await page.getByLabel("Stop loss").fill("98");
+  await page.getByRole("button", { name: /Use 4R target/ }).click();
+  await expect(page.getByLabel("Take profit")).toHaveValue("108");
+
+  await page.goto("/trades/new");
+  await page.getByLabel("Symbol").fill("NQZ6");
+  await page.getByLabel("Size").fill("2");
+  await page.getByLabel(/Opened/).fill("2026-10-22T16:30");
+  await page.getByLabel("Closed").fill("2026-10-22T16:45");
+  await page.getByLabel("Entry price").fill("21000");
+  await page.getByLabel("Exit price").fill("21010");
+  await page.getByRole("button", { name: "Save trade" }).click();
+  await expect(page.getByRole("heading", { name: "NQZ6" })).toBeVisible();
+  await expect(page.getByText("+10.0 pts", { exact: true })).toBeVisible();
+  await expect(page.getByText("2 ct", { exact: true })).toBeVisible();
+  await expect(page.getByText("+$400.00").first()).toBeVisible();
 });
 
 test("export then re-import skips every duplicate", async ({ page }) => {
