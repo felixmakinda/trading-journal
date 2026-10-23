@@ -1,0 +1,24 @@
+{
+  "name": "trading-journal",
+  "private": true,
+  "packageManager": "pnpm@10.34.7",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "check": "turbo run lint typecheck test",
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
+    "db:types": "supabase gen types typescript --local > apps/web/src/lib/supabase/database.types.ts"
+  },
+  "devDependencies": {
+    "supabase": "^2.122.0",
+    "turbo": "^2.11.10",
+    "typescript": "^5"
+  }
+}
