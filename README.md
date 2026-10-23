@@ -64,7 +64,8 @@ Sign in with the demo account `demo@journal.local` / `DemoTrader2026` (local see
 1. **cTrader app.** Register at <https://openapi.ctrader.com>. Redirect URI: `https://<your-domain>/api/ctrader/callback`. Approval can take a few days, so start here.
 2. **Supabase project.** Create it, then:
    - Authentication → disable sign-ups, enable TOTP MFA, set the site URL to the app's URL.
-   - Create the trader's user (Authentication → Users → invite).
+   - Create the trader's user (Authentication → Users → Add user → Create new user, with a password and **Auto Confirm User** ticked). Don't use Invite: the app has no page for setting a password from an invite link.
+   - Apply the migrations from your machine, once: `pnpm exec supabase link --project-ref <project-ref>` then `pnpm exec supabase db push`. After that, the **Deploy database** workflow (step 4) applies new ones.
    - SQL editor, once:
      ```sql
      select vault.create_secret('https://<your-domain>', 'app_url');
