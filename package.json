@@ -19,6 +19,6 @@
   "devDependencies": {
     "supabase": "^2.122.0",
     "turbo": "^2.11.10",
-    "typescript": "^5"
+    "typescript": "^7"
   }
 }
