@@ -1,7 +1,7 @@
 -- Row Level Security and MFA enforcement. Run with: supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(17);
+select plan(22);
 
 -- Two users, each with one trade. Profiles are created by the auth trigger.
 insert into auth.users (id, instance_id, aud, role, email) values
@@ -16,6 +16,15 @@ insert into public.playbook_models (user_id, name, target_r) values
   ('11111111-1111-4111-8111-111111111111', 'FTB', 4),
   ('22222222-2222-4222-8222-222222222222', 'Secret edge', 7);
 update public.trades set setup = 'ftb' where user_id = '11111111-1111-4111-8111-111111111111';
+
+insert into public.daily_journal (user_id, day, grade) values
+  ('11111111-1111-4111-8111-111111111111', '2026-10-30', 'B'),
+  ('22222222-2222-4222-8222-222222222222', '2026-10-30', 'A');
+insert into public.eod_sessions (id, user_id, day, market) values
+  ('44444444-4444-4444-8444-444444444444', '11111111-1111-4111-8111-111111111111', '2026-10-30', 'NQ'),
+  ('55555555-5555-4555-8555-555555555555', '22222222-2222-4222-8222-222222222222', '2026-10-30', 'GC');
+insert into public.eod_plays (user_id, session_id, side, outcome) values
+  ('11111111-1111-4111-8111-111111111111', '44444444-4444-4444-8444-444444444444', 'buy', 'missed');
 
 insert into public.broker_connections (id, user_id) values
   ('33333333-3333-4333-8333-333333333333', '11111111-1111-4111-8111-111111111111');
@@ -55,6 +64,17 @@ select throws_ok(
   $$ insert into public.playbook_models (user_id, name) values ('22222222-2222-4222-8222-222222222222', 'X') $$,
   '42501', null, 'A cannot add models for B');
 update public.playbook_models set name = 'FTB 382' where name = 'FTB';
+
+select is((select string_agg(market, ',') from public.eod_sessions), 'NQ', 'A sees only their own end-of-day sections');
+select is((select count(*) from public.eod_plays), 1::bigint, 'and their own plays');
+select throws_ok(
+  $$ insert into public.eod_plays (user_id, session_id, side, outcome)
+     values ('11111111-1111-4111-8111-111111111111', '55555555-5555-4555-8555-555555555555', 'buy', 'taken') $$,
+  '23503', null, 'A cannot attach a play to B''s section');
+select throws_ok(
+  $$ insert into public.attachments (user_id, eod_session_id, storage_path, mime_type, size_bytes)
+     values ('11111111-1111-4111-8111-111111111111', '55555555-5555-4555-8555-555555555555', 'x/y.png', 'image/png', 10) $$,
+  '23503', null, 'or a screenshot to it'); 
 select is((select setup from public.trades), 'FTB 382', 'renaming a model renames it on its trades');
 
 -- A enrols MFA: a password-only session must now see nothing.
@@ -67,6 +87,7 @@ set local request.jwt.claims = '{"sub":"11111111-1111-4111-8111-111111111111","r
 select is((select count(*) from public.trades), 0::bigint, 'aal1 session sees nothing once MFA is enrolled');
 select is((select count(*) from public.profiles), 0::bigint, 'including the profile');
 select is((select count(*) from public.playbook_models), 0::bigint, 'and the playbook');
+select is((select count(*) from public.eod_sessions), 0::bigint, 'and the end-of-day review');
 
 set local request.jwt.claims = '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","aal":"aal2"}';
 select is((select count(*) from public.trades), 1::bigint, 'aal2 session sees the data again');

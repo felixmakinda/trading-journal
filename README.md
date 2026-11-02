@@ -5,6 +5,8 @@ A private trading journal for a forex trader on **Pepperstone** (Razor account o
 - **Dashboard:** net P&L, win rate, profit factor, expectancy, average R, drawdown, equity curve, P&L calendar.
 - **Journal per trade:** setup, emotions, rating, plan adherence, tags, notes, TradingView snapshots shown inline, screenshot uploads.
 - **Pre-trade plans** with a personal checklist and live reward-to-risk.
+- **Playbook** of setups with target R, break-even, attempt and entry-window rules, measured against every trade.
+- **End-of-day review:** per market, the setups that were there and the plays taken, missed or skipped on purpose, with chart screenshots and a day grade. Imports the standalone EOD Journal backup.
 - **Analytics** by session (Nairobi time), symbol, weekday, hour, setup, tag, emotion and holding time.
 - **Behaviour flags:** revenge trades, tilt, overtrading, missing stops, and what each one cost.
 - **Prop-firm limits:** daily and max loss tracking with warnings.

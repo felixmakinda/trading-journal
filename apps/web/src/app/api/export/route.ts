@@ -1,6 +1,7 @@
 import { toCsv } from "@tj/core";
 import type { NextRequest } from "next/server";
 import { requireUser } from "@/lib/auth";
+import { listEodDays } from "@/lib/data/eod";
 import { listTrades } from "@/lib/data/trades";
 
 const COLUMNS = [
@@ -17,7 +18,12 @@ export async function GET(request: NextRequest) {
   const stamp = new Date().toISOString().slice(0, 10);
 
   if (request.nextUrl.searchParams.get("format") === "json") {
-    return new Response(JSON.stringify({ exportedAt: new Date().toISOString(), trades }, null, 2), {
+    // Screenshots stay in private storage; the export carries the text of every review.
+    const endOfDay = (await listEodDays(supabase, {}, false)).map((d) => ({
+      ...d,
+      sections: d.sections.map((s) => ({ ...s, images: undefined })),
+    }));
+    return new Response(JSON.stringify({ exportedAt: new Date().toISOString(), trades, endOfDay }, null, 2), {
       headers: {
         "Content-Type": "application/json",
         "Content-Disposition": `attachment; filename="trades-${stamp}.json"`,

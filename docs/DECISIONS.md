@@ -15,6 +15,7 @@ Architecture decision record for the trading journal. Each entry says what we ch
 | 009 | CI/CD on GitHub Actions | Accepted | 2026-10-23 |
 | 010 | No marketing home page; demo mode for portfolio | Accepted | 2026-10-23 |
 | 011 | MFA enforced in the database; CSP without nonces | Accepted (refines 007) | 2026-10-23 |
+| 012 | End-of-day review alongside the trade journal | Accepted | 2026-11-02 |
 
 ---
 
@@ -103,3 +104,13 @@ Two refinements to 007 found while building:
   - pgTAP tests in `supabase/tests` prove both isolation between users and the MFA rule.
 - **CSP.** Next.js nonce-based CSP requires fully dynamic rendering and is incompatible with the prerendered static shell of Cache Components. We keep Cache Components and allow `'unsafe-inline'` scripts, but load no third-party scripts, render no user HTML, and lock down `connect-src`, `img-src`, `form-action`, `frame-ancestors` and `object-src`.
 
+## 012. End-of-day review alongside the trade journal
+
+The trader built a standalone EOD Journal: one review per day, a section per market looked at (how it went, setups that were there, the trade of the session taken/missed/skipped, what was done versus what should have been, chart screenshots), and a day grade. It is added to this app as its own section, `/eod`, without changing how trades work.
+
+- **Manual now, linkable later.** Plays are entered by hand, as in his app. `eod_plays.trade_id` is reserved so a taken play can later be linked to its synced trade, which is an addition, not a migration of his data.
+- **Shared vocabulary.** Play setups are picked from the Playbook (`playbook_models`), so missed plays, taken plays and real trades are counted under the same setup names.
+- **Reuses what exists.** The day is `daily_journal` (grade, lesson, markets added; `notes` holds the summary). Screenshots use `attachments` and the private bucket; an attachment belongs to exactly one trade or one section.
+- **Owner-checked links.** Child rows reference `(id, user_id)` of their parent, so a play or screenshot can never be attached to another user's section, even though RLS alone would only hide it.
+- **His data comes along.** `/eod` imports his app's JSON backup. Embedded screenshots are uploaded; ones held in his app's own storage cannot be fetched and are reported. Days already present are not overwritten.
+- **Saved per market.** The form saves each market as the trader moves on, so a closed tab loses at most the market being typed. A day without a grade shows as a draft.

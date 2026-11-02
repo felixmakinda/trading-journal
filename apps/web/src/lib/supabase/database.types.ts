@@ -25,17 +25,23 @@ export type Database = {
           Tables: {
             "attachments": {
                   Row: {
-                    "created_at": string,"id": string,"mime_type": string,"size_bytes": number,"storage_path": string,"trade_id": string,"user_id": string
+                    "created_at": string,"eod_session_id": string | null,"id": string,"mime_type": string,"size_bytes": number,"storage_path": string,"trade_id": string | null,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"mime_type": string,"size_bytes": number,"storage_path": string,"trade_id": string,"user_id": string
+                    "created_at"?: string,"eod_session_id"?: string | null,"id"?: string,"mime_type": string,"size_bytes": number,"storage_path": string,"trade_id"?: string | null,"user_id": string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"mime_type"?: string,"size_bytes"?: number,"storage_path"?: string,"trade_id"?: string,"user_id"?: string
+                    "created_at"?: string,"eod_session_id"?: string | null,"id"?: string,"mime_type"?: string,"size_bytes"?: number,"storage_path"?: string,"trade_id"?: string | null,"user_id"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "attachments_eod_session_owner"
+      columns: ["eod_session_id","user_id"]
+isOneToOne: false
+      referencedRelation: "eod_sessions"
+      referencedColumns: ["id","user_id"]
+    },{
       foreignKeyName: "attachments_trade_id_fkey"
       columns: ["trade_id"]
 isOneToOne: false
@@ -93,17 +99,63 @@ isOneToOne: true
                   ]
                 },"daily_journal": {
                   Row: {
-                    "day": string,"mood": number | null,"notes": string | null,"sleep_hours": number | null,"updated_at": string,"user_id": string
+                    "created_at": string,"day": string,"grade": string | null,"lesson": string | null,"markets": (string)[],"mood": number | null,"notes": string | null,"sleep_hours": number | null,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "day": string,"mood"?: number | null,"notes"?: string | null,"sleep_hours"?: number | null,"updated_at"?: string,"user_id": string
+                    "created_at"?: string,"day": string,"grade"?: string | null,"lesson"?: string | null,"markets"?: (string)[],"mood"?: number | null,"notes"?: string | null,"sleep_hours"?: number | null,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "day"?: string,"mood"?: number | null,"notes"?: string | null,"sleep_hours"?: number | null,"updated_at"?: string,"user_id"?: string
+                    "created_at"?: string,"day"?: string,"grade"?: string | null,"lesson"?: string | null,"markets"?: (string)[],"mood"?: number | null,"notes"?: string | null,"sleep_hours"?: number | null,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     
+                  ]
+                },"eod_plays": {
+                  Row: {
+                    "chart_url": string | null,"created_at": string,"detail": string | null,"id": string,"outcome": string,"position": number,"presented_at": string | null,"session_id": string,"setup": string | null,"side": string,"trade_id": string | null,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "chart_url"?: string | null,"created_at"?: string,"detail"?: string | null,"id"?: string,"outcome": string,"position"?: number,"presented_at"?: string | null,"session_id": string,"setup"?: string | null,"side": string,"trade_id"?: string | null,"user_id": string
+                  }
+                  Update: {
+                    "chart_url"?: string | null,"created_at"?: string,"detail"?: string | null,"id"?: string,"outcome"?: string,"position"?: number,"presented_at"?: string | null,"session_id"?: string,"setup"?: string | null,"side"?: string,"trade_id"?: string | null,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "eod_plays_session_id_user_id_fkey"
+      columns: ["session_id","user_id"]
+isOneToOne: false
+      referencedRelation: "eod_sessions"
+      referencedColumns: ["id","user_id"]
+    },{
+      foreignKeyName: "eod_plays_trade_id_user_id_fkey"
+      columns: ["trade_id","user_id"]
+isOneToOne: false
+      referencedRelation: "trades"
+      referencedColumns: ["id","user_id"]
+    }
+                  ]
+                },"eod_sessions": {
+                  Row: {
+                    "chart_url": string | null,"created_at": string,"day": string,"did": string | null,"id": string,"market": string,"no_setup": boolean,"no_trade": boolean,"setups_seen": NonNullable<Json>,"should_have": string | null,"updated_at": string,"user_id": string,"went": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "chart_url"?: string | null,"created_at"?: string,"day": string,"did"?: string | null,"id"?: string,"market": string,"no_setup"?: boolean,"no_trade"?: boolean,"setups_seen"?: NonNullable<Json>,"should_have"?: string | null,"updated_at"?: string,"user_id": string,"went"?: string | null
+                  }
+                  Update: {
+                    "chart_url"?: string | null,"created_at"?: string,"day"?: string,"did"?: string | null,"id"?: string,"market"?: string,"no_setup"?: boolean,"no_trade"?: boolean,"setups_seen"?: NonNullable<Json>,"should_have"?: string | null,"updated_at"?: string,"user_id"?: string,"went"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "eod_sessions_user_id_day_fkey"
+      columns: ["user_id","day"]
+isOneToOne: false
+      referencedRelation: "daily_journal"
+      referencedColumns: ["user_id","day"]
+    }
                   ]
                 },"executions": {
                   Row: {

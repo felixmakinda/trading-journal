@@ -53,6 +53,10 @@ export function RulesForm({ rules }: { rules: Rules }) {
         </label>
       </div>
 
+      <Field label="End-of-day markets" hint="Tickers you review at the end of the day, in order, separated by commas">
+        <input name="eodMarkets" defaultValue={rules.eodMarkets.join(", ")} className={`${inputStyles} uppercase`} />
+      </Field>
+
       <Field label="Pre-trade checklist" hint="One item per line. Shown when you plan a trade.">
         <textarea name="checklist" rows={5} defaultValue={rules.checklist.join("\n")} className={inputStyles} />
       </Field>
