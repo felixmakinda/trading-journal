@@ -7,14 +7,13 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { getProfile } from "@/lib/data/trades";
 import { fromLocalInput } from "@/lib/format";
+import { checkImage } from "@/lib/images";
 import type { ServerClient } from "@/lib/supabase/server";
 import { brokerColumns } from "./derive";
 
 export type ActionState = { ok?: boolean; message?: string; fieldErrors?: Record<string, string> } | null;
 
 const uuid = z.string().uuid();
-const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
-const ALLOWED_TYPES = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" } as const;
 
 async function parseTradeForm(supabase: ServerClient, userId: string, form: FormData) {
   const { timezone } = await getProfile(supabase, userId);
@@ -131,18 +130,9 @@ export async function deleteTrade(tradeId: string): Promise<void> {
 export async function uploadAttachment(tradeId: string, _: ActionState, form: FormData): Promise<ActionState> {
   const { supabase, user } = await requireUser();
   if (!uuid.safeParse(tradeId).success) return { message: "Unknown trade." };
-  const file = form.get("file");
-  if (!(file instanceof File) || file.size === 0) return { message: "Choose an image first." };
-  if (file.size > MAX_UPLOAD_BYTES) return { message: "Images must be 5 MB or smaller." };
-  const ext = ALLOWED_TYPES[file.type as keyof typeof ALLOWED_TYPES];
-  if (!ext) return { message: "Use a PNG, JPEG or WebP image." };
-
-  // Check the file really is the image type it claims to be.
-  const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
-  const isPng = head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47;
-  const isJpeg = head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff;
-  const isWebp = String.fromCharCode(...head.slice(0, 4)) === "RIFF" && String.fromCharCode(...head.slice(8, 12)) === "WEBP";
-  if (!({ png: isPng, jpg: isJpeg, webp: isWebp })[ext]) return { message: "That file is not a valid image." };
+  const image = await checkImage(form.get("file"));
+  if ("error" in image) return { message: image.error };
+  const { file, ext } = image;
 
   const path = `${user.id}/${tradeId}/${crypto.randomUUID()}.${ext}`;
   const { error: uploadError } = await supabase.storage.from("attachments").upload(path, file, { contentType: file.type });

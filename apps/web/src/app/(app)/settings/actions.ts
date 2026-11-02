@@ -92,6 +92,7 @@ export async function saveRules(_: ActionState, form: FormData): Promise<ActionS
     tiltWindowMinutes: numberField(form, "tiltWindowMinutes"),
     maxTradesPerDay: numberField(form, "maxTradesPerDay"),
     requireStopLoss: form.get("requireStopLoss") === "on",
+    eodMarkets: [...new Set(String(form.get("eodMarkets") ?? "").toUpperCase().split(/[\s,]+/).filter(Boolean))],
     propFirm: {
       enabled: form.get("propEnabled") === "on",
       name: String(form.get("propName") ?? ""),

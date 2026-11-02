@@ -95,6 +95,60 @@ test("playbook setup drives the plan, and futures P&L is calculated", async ({ p
   await expect(page.getByText("+$400.00").first()).toBeVisible();
 });
 
+// 1x1 transparent PNG.
+const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+
+test("end-of-day review: fill a market, log a missed play, grade the day", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/eod");
+  await page.getByRole("link", { name: "Fill in today", exact: true }).click();
+  await expect(page).toHaveURL(/\/eod\/\d{4}-\d{2}-\d{2}$/);
+
+  for (const m of ["GC", "CL", "GER40", "YM"]) await page.getByRole("checkbox", { name: m, exact: true }).uncheck();
+  await page.getByRole("button", { name: "Start" }).click();
+
+  await expect(page.getByRole("heading", { name: "NQ", exact: true })).toBeVisible();
+  await page.getByLabel("How the session went").fill("Trend day from the open.");
+  await page.getByRole("checkbox", { name: "NY reversal short" }).check();
+  await page.getByLabel("Time it presented").fill("09:35");
+  await page.getByRole("combobox", { name: "Setup" }).fill("NY reversal");
+  await page.getByLabel("Direction").selectOption("sell");
+  await page.getByLabel("Outcome").selectOption("missed");
+  await page.getByLabel("The trade").fill("Hesitated at the shift line.");
+  await page.getByLabel("Add a NQ chart screenshot").setInputFiles({ name: "chart.png", mimeType: "image/png", buffer: PNG });
+  await expect(page.getByRole("img", { name: "NQ chart 1" })).toBeVisible();
+  await page.getByRole("button", { name: "Save and next" }).click();
+
+  await page.getByRole("button", { name: "B", exact: true }).click();
+  await page.getByLabel("How did the day go overall?").fill("Patient, but missed the best play.");
+  await page.getByLabel("Main thing to carry into tomorrow").fill("Take the first clean shift-line touch.");
+  await page.getByRole("button", { name: "Save day" }).click();
+
+  await expect(page).toHaveURL(/\/eod\?month=/);
+  // The day's card on the review page (the form stays mounted, hidden, behind it).
+  const card = page.locator("section[id^='20']");
+  await expect(card.getByText("Patient, but missed the best play.")).toBeVisible();
+  await expect(card.getByText("Hesitated at the shift line.", { exact: false })).toBeVisible();
+  await expect(card.getByRole("img", { name: "NQ chart 1" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "NY reversal" })).toBeVisible();
+});
+
+test("end-of-day review imports an EOD Journal backup", async ({ page }) => {
+  await signIn(page);
+  const backup = [{
+    date: "2026-10-30", assets: ["GER40"], grade: "C", summary: "Imported from the old app.", learn: "",
+    entries: { GER40: { went: "Choppy", did: "", should: "", link: "", setups: ["No clean setup"], notrade: true, trades: [], imgs: [] } },
+  }];
+  await page.goto("/eod");
+  await page.getByText("Import from the EOD Journal app").click();
+  await page.getByLabel("EOD Journal backup file").setInputFiles({ name: "eod.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(backup)) });
+  await page.getByRole("button", { name: "Import" }).click();
+  await expect(page.getByRole("status")).toHaveText("Imported 1 day.");
+  await page.goto("/eod?month=2026-10");
+  await expect(page.getByText("Imported from the old app.")).toBeVisible();
+  await expect(page.getByText("No trade presented.")).toBeVisible();
+});
+
 test("export then re-import skips every duplicate", async ({ page }) => {
   await signIn(page);
   await page.goto("/settings");

@@ -20,6 +20,10 @@ import {
   rMultiple,
   sessionOf,
   checklistFor,
+  averageGrade,
+  eodMarketSchema,
+  parseEodBackup,
+  summarizePlays,
   estimateGrossPnl,
   findModel,
   instrumentSpec,
@@ -133,6 +137,68 @@ describe("playbook", () => {
     const parsed = modelInputSchema.parse({ name: " FTB ", targetR: "4", breakevenR: "", maxAttempts: "2", entryWindowMinutes: "" });
     expect(parsed).toMatchObject({ name: "FTB", targetR: 4, breakevenR: null, maxAttempts: 2, entryWindowMinutes: null, checklist: [] });
     expect(modelInputSchema.safeParse({ name: "x", maxAttempts: "1.5" }).success).toBe(false);
+  });
+});
+
+describe("end-of-day review", () => {
+  it("drops untouched play rows, and all plays when no trade presented", () => {
+    const blank = { side: "buy", outcome: "taken", presentedAt: "", detail: "", chartUrl: "" };
+    const filled = { ...blank, presentedAt: "09:35", setup: "FTB" };
+    expect(eodMarketSchema.parse({ plays: [blank, filled] }).plays).toHaveLength(1);
+    expect(eodMarketSchema.parse({ noTrade: true, plays: [filled] }).plays).toEqual([]);
+    expect(eodMarketSchema.safeParse({ chartUrl: "http://x.com" }).success).toBe(false);
+    expect(eodMarketSchema.safeParse({ plays: [{ ...filled, presentedAt: "25:00" }] }).success).toBe(false);
+  });
+
+  it("averages grades on a 4-point scale and counts plays by setup", () => {
+    expect(averageGrade(["A", "C", null])).toBe(3);
+    expect(averageGrade([null])).toBeNull();
+    const s = summarizePlays([
+      { setup: "FTB", outcome: "missed" },
+      { setup: "FTB", outcome: "taken" },
+      { setup: ".382 VB", outcome: "skipped" },
+      { setup: null, outcome: "missed" },
+    ]);
+    expect(s).toMatchObject({ taken: 1, missed: 2, skipped: 1 });
+    expect(s.bySetup[0]).toEqual({ setup: "FTB", taken: 1, missed: 1, skipped: 0 });
+  });
+
+  it("reads an EOD Journal backup, keeping legacy fields as text", () => {
+    const backup = [
+      {
+        date: "2026-10-30",
+        assets: ["NQ", "GC"],
+        grade: "B",
+        summary: "Patient morning.",
+        learn: "Wait for the visual break.",
+        entries: {
+          NQ: {
+            went: "Trend day", did: "Took the open play", should: "Held to 4R", link: "https://www.tradingview.com/x/abc/",
+            setups: ["Failure to Break (DO) | Long", "No clean setup"], notrade: false,
+            trades: [
+              { time: "09:31", type: "DO Reversal", dir: "Short", taken: "Missed", detail: "Late", link: "tv.com/x" },
+              { time: "", type: "DO Reversal", dir: "Long", taken: "Taken", detail: "", link: "" },
+            ],
+            imgs: ["user/2026-10-30-NQ-1.jpg", "data:image/jpeg;base64,AAAA"],
+          },
+          GC: { went: "", did: "", should: "", link: "", setups: [], notrade: true, trades: [], imgs: [], opps: "Clean FTB", m5link: "https://tv.com/m5" },
+        },
+      },
+      { date: "not a date", entries: {} },
+    ];
+    const { days, skipped } = parseEodBackup(backup);
+    expect(skipped).toBe(1);
+    const [day] = days;
+    expect(day).toMatchObject({ day: "2026-10-30", grade: "B", lesson: "Wait for the visual break." });
+    const [nq, gc] = day!.markets;
+    expect(nq).toMatchObject({ market: "NQ", noSetup: true, chartUrl: "https://www.tradingview.com/x/abc/", shouldHave: "Held to 4R" });
+    expect(nq!.setupsSeen).toEqual([{ setup: "Failure to Break (DO)", side: "buy" }]);
+    expect(nq!.plays).toEqual([
+      { presentedAt: "09:31", setup: "DO Reversal", side: "sell", outcome: "missed", detail: "Late\n\nLink: tv.com/x", chartUrl: null },
+    ]);
+    expect(nq!.images).toHaveLength(2);
+    expect(gc).toMatchObject({ market: "GC", noTrade: true, chartUrl: "https://tv.com/m5", went: "Opportunities: Clean FTB" });
+    expect(() => parseEodBackup({})).toThrow();
   });
 });
 

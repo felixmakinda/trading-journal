@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { marketSchema } from "./eod";
 
 export const DEFAULT_CHECKLIST = [
   "Higher-timeframe trend agrees",
@@ -18,6 +19,8 @@ export const rulesSchema = z.object({
   tiltWindowMinutes: z.number().int().min(1).max(1440).default(20),
   maxTradesPerDay: z.number().int().min(1).max(200).default(6),
   requireStopLoss: z.boolean().default(true),
+  /** Markets offered in the end-of-day review, in the order they are filled in. */
+  eodMarkets: z.array(marketSchema).max(20).default(["NQ", "GC", "CL", "GER40", "YM"]),
   propFirm: z
     .object({
       enabled: z.boolean().default(false),

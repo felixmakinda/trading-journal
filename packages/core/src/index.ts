@@ -6,6 +6,7 @@ export * from "./reconstruct";
 export * from "./stats";
 export * from "./rules";
 export * from "./playbook";
+export * from "./eod";
 export * from "./behaviour";
 export * from "./propfirm";
 export * from "./schemas";
