@@ -10,13 +10,13 @@
     "lint": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "papaparse": "^5.7.0",
+    "papaparse": "^5.7.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^22",
     "@types/papaparse": "^5.5.2",
     "typescript": "^5",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.1"
   }
 }
